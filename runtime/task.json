@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.0",
+  "task_id": "openmousegesture-build-installer-2026-07-05",
+  "title": "Generate GestureHotkeyApp Windows installer",
+  "created_at": "2026-07-05T12:20:00+09:00",
+  "orchestrator": {
+    "mode": "ai-orchestrator-test",
+    "worker": "codex-cli",
+    "output_policy": "minimal"
+  },
+  "repository": {
+    "full_name": "ordinal-aitech/OpenMouseGesture",
+    "default_branch": "main",
+    "local_root_expected": "C:\\GitHub\\OpenMouseGesture"
+  },
+  "objective": "Build the current GestureHotkeyApp source and generate the Windows NSIS installer executable.",
+  "scope": {
+    "primary_working_directory": "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357",
+    "read_first": [
+      "docs/codex-handoff-spec.md",
+      "docs/progress-log.md",
+      "docs/build-environment-setup.md",
+      "artifacts/run-tauri-build.cmd",
+      "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/package.json",
+      "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/tauri.conf.json"
+    ],
+    "allowed_actions": [
+      "Check required local tools: node, npm, cargo, rustc, git, cl, link, makensis if available.",
+      "Run npm install if node_modules is missing or dependencies are not installed.",
+      "Run npm run build.",
+      "Run npm run tauri build, preferably through artifacts/run-tauri-build.cmd when Visual Studio Build Tools environment is required.",
+      "Verify generated files under src-tauri/target/release and src-tauri/target/release/bundle/nsis.",
+      "Create report.json at repository root with the final result."
+    ],
+    "disallowed_actions": [
+      "Do not redesign or refactor application code.",
+      "Do not change product requirements or shared AI rules.",
+      "Do not commit generated target/ output unless explicitly instructed later.",
+      "Do not upload installers to GitHub Releases or external services.",
+      "Do not enable action label overlay. It is intentionally disabled for stability."
+    ]
+  },
+  "commands": {
+    "preferred_windows_cmd": [
+      "cd /d C:\\GitHub\\OpenMouseGesture\\source-v1.0.1\\7-rate-OpenMouseGesture-b8f5357",
+      "npm install",
+      "npm run build",
+      "cmd /c C:\\GitHub\\OpenMouseGesture\\artifacts\\run-tauri-build.cmd"
+    ],
+    "fallback_powershell": [
+      "Set-Location C:\\GitHub\\OpenMouseGesture\\source-v1.0.1\\7-rate-OpenMouseGesture-b8f5357",
+      "npm install",
+      "npm run build",
+      "npm run tauri build"
+    ]
+  },
+  "expected_outputs": [
+    {
+      "type": "application_executable",
+      "path": "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/GestureHotkeyApp.exe",
+      "required": true
+    },
+    {
+      "type": "installer_executable",
+      "path": "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/bundle/nsis/GestureHotkeyApp_0.1.0_x64-setup.exe",
+      "required": true
+    },
+    {
+      "type": "installer_executable_alias",
+      "path": "source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/bundle/nsis/GestureHotkeyApp-setup.exe",
+      "required": false,
+      "note": "If this alias is not generated automatically, report that fact. Do not invent success."
+    }
+  ],
+  "verification": [
+    "Confirm each required output file exists.",
+    "Record file size and last modified timestamp for each generated executable.",
+    "If possible, run the executable only far enough to confirm process startup; do not perform broad manual UI testing in this task.",
+    "Do not run the installer unless explicitly allowed by the human operator during this task."
+  ],
+  "stop_conditions": [
+    "Required build tool is missing and cannot be installed without human action.",
+    "npm install fails.",
+    "npm run build fails.",
+    "npm run tauri build fails.",
+    "Installer output is not generated after a successful build.",
+    "Any step requires administrator permission or external credential approval."
+  ],
+  "report": {
+    "output_path": "report.json",
+    "required_fields": [
+      "task_id",
+      "status",
+      "started_at",
+      "finished_at",
+      "commands_run",
+      "environment",
+      "outputs",
+      "errors",
+      "human_action_required",
+      "notes"
+    ],
+    "status_values": [
+      "success",
+      "failed",
+      "blocked"
+    ]
+  }
+}
