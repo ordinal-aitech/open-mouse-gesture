@@ -1,6 +1,6 @@
 {
   "task_id": "agent-20260705-open-mouse-gesture-build-installer",
-  "status": "ready",
+  "status": "success",
   "payload": {
     "action": "agent_task",
     "execution_agent": "codex",
