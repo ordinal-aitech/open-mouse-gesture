@@ -1,7 +1,7 @@
 {
   "task_id": "agent-20260705-open-mouse-gesture-build-installer-retry-001",
   "status": "failed",
-  "summary": "git_sync pull_before_run failed: git pull --ff-only failed: fatal: unable to access 'https://github.com/ordinal-aitech/open-mouse-gesture.git/': Could not resolve host: github.com",
+  "summary": "git_sync pull_before_run failed: git pull --ff-only failed: From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.",
   "execution_agent_requested": "codex",
   "execution_mode": "local_command",
   "project": {
@@ -16,7 +16,7 @@
       "attempted": true,
       "success": false,
       "stdout": "",
-      "stderr": "fatal: unable to access 'https://github.com/ordinal-aitech/open-mouse-gesture.git/': Could not resolve host: github.com\n",
+      "stderr": "From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.\n",
       "diverged": false
     }
   },
@@ -24,13 +24,13 @@
   "execution_time": "0.000s",
   "error": {
     "code": "GIT_PULL_FAILED",
-    "message": "git pull --ff-only failed: fatal: unable to access 'https://github.com/ordinal-aitech/open-mouse-gesture.git/': Could not resolve host: github.com",
+    "message": "git pull --ff-only failed: From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.",
     "retryable": false,
     "detail": {
       "attempted": true,
       "success": false,
       "stdout": "",
-      "stderr": "fatal: unable to access 'https://github.com/ordinal-aitech/open-mouse-gesture.git/': Could not resolve host: github.com\n",
+      "stderr": "From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.\n",
       "diverged": false
     }
   }
