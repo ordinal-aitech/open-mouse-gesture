@@ -1,49 +1,207 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useStore } from "../../store/useStore";
 import * as api from "../../api/commands";
-import type { Config, GestureTriggerButton } from "../../types";
+import type { Config, GestureTrigger, MouseTriggerButton, TriggerModifier, TriggerSlot } from "../../types";
 import { confirm, message, open, save } from "@tauri-apps/plugin-dialog";
 import "./SettingsTab.css";
 
-const triggerButtonOptions: Array<{ value: GestureTriggerButton; label: string }> = [
-  { value: "right", label: "Right" },
-  { value: "middle", label: "Middle" },
-  { value: "x1", label: "XBUTTON1" },
-  { value: "x2", label: "XBUTTON2" },
-];
+const CAPTURE_ARM_DELAY_MS = 150;
+const LEGACY_MOUSE_TRIGGERS = new Set(["left", "right", "middle", "x1", "x2"]);
+const MODIFIER_ORDER: TriggerModifier[] = ["Ctrl", "Alt", "Shift"];
+
+const mouseButtonMap: Record<number, MouseTriggerButton | undefined> = {
+  0: "left",
+  1: "middle",
+  2: "right",
+  3: "x1",
+  4: "x2",
+};
+
+const mouseButtonLabels: Record<MouseTriggerButton, string> = {
+  left: "Mouse Left",
+  right: "Mouse Right",
+  middle: "Mouse Middle",
+  x1: "Mouse X1",
+  x2: "Mouse X2",
+};
+
+const keyLabelsByCode: Record<string, string> = {
+  ArrowDown: "Down",
+  ArrowLeft: "Left",
+  ArrowRight: "Right",
+  ArrowUp: "Up",
+  Backquote: "`",
+  Backslash: "\\",
+  Backspace: "Backspace",
+  BracketLeft: "[",
+  BracketRight: "]",
+  CapsLock: "CapsLock",
+  Comma: ",",
+  Delete: "Delete",
+  End: "End",
+  Enter: "Enter",
+  Equal: "=",
+  Escape: "Escape",
+  Home: "Home",
+  Insert: "Insert",
+  Minus: "-",
+  NumpadAdd: "Num +",
+  NumpadDecimal: "Num .",
+  NumpadDivide: "Num /",
+  NumpadEnter: "Num Enter",
+  NumpadMultiply: "Num *",
+  NumpadSubtract: "Num -",
+  PageDown: "PageDown",
+  PageUp: "PageUp",
+  Pause: "Pause",
+  Period: ".",
+  PrintScreen: "PrintScreen",
+  Quote: "'",
+  ScrollLock: "ScrollLock",
+  Semicolon: ";",
+  Slash: "/",
+  Space: "Space",
+  Tab: "Tab",
+};
+
+function normalizeMouseTrigger(trigger: string): MouseTriggerButton | null {
+  const normalized = trigger.trim().toLowerCase();
+  if (LEGACY_MOUSE_TRIGGERS.has(normalized)) {
+    return normalized as MouseTriggerButton;
+  }
+
+  if (!normalized.startsWith("mouse:")) {
+    return null;
+  }
+
+  const button = normalized.slice(6);
+  return LEGACY_MOUSE_TRIGGERS.has(button) ? (button as MouseTriggerButton) : null;
+}
+
+function serializeMouseTrigger(button: MouseTriggerButton) {
+  return `mouse:${button}`;
+}
+
+function serializeKeyboardTrigger(modifiers: TriggerModifier[], code: string) {
+  const parts = [...modifiers, code];
+  return `key:${parts.join("+")}`;
+}
+
+function getKeyboardKeyLabel(code: string, key: string) {
+  if (code.startsWith("Key") && code.length === 4) {
+    return code.slice(3);
+  }
+
+  if (code.startsWith("Digit") && code.length === 6) {
+    return code.slice(5);
+  }
+
+  if (/^F\d{1,2}$/.test(code)) {
+    return code;
+  }
+
+  if (code.startsWith("Numpad") && /^Numpad\d$/.test(code)) {
+    return "Num " + code.slice(6);
+  }
+
+  if (keyLabelsByCode[code]) {
+    return keyLabelsByCode[code];
+  }
+
+  const fallback = key.trim();
+  if (!fallback || fallback === "Shift" || fallback === "Control" || fallback === "Alt" || fallback === "Meta") {
+    return null;
+  }
+
+  return fallback.length === 1 ? fallback.toUpperCase() : fallback;
+}
+
+function formatTrigger(trigger: GestureTrigger) {
+  const mouseButton = normalizeMouseTrigger(trigger);
+  if (mouseButton) {
+    return mouseButtonLabels[mouseButton];
+  }
+
+  if (!trigger.startsWith("key:")) {
+    return trigger || "未設定";
+  }
+
+  const payload = trigger.slice(4).split("+").filter(Boolean);
+  if (payload.length === 0) {
+    return "未設定";
+  }
+
+  const code = payload[payload.length - 1];
+  const modifiers = payload.slice(0, -1);
+  const keyLabel = getKeyboardKeyLabel(code, code) ?? code;
+  return [...modifiers, keyLabel].join(" + ");
+}
+
+function isLeftMouseTrigger(trigger: GestureTrigger) {
+  return normalizeMouseTrigger(trigger) === "left";
+}
+
+function buildKeyboardTrigger(event: KeyboardEvent): string | null {
+  const code = event.code.trim();
+  if (!code) {
+    return null;
+  }
+
+  if (!getKeyboardKeyLabel(code, event.key)) {
+    return null;
+  }
+
+  const modifiers = MODIFIER_ORDER.filter((modifier) => {
+    switch (modifier) {
+      case "Ctrl":
+        return event.ctrlKey;
+      case "Alt":
+        return event.altKey;
+      case "Shift":
+        return event.shiftKey;
+      default:
+        return false;
+    }
+  });
+
+  return serializeKeyboardTrigger(modifiers, code);
+}
 
 interface TriggerSettingProps {
   title: string;
-  button: GestureTriggerButton;
+  trigger: GestureTrigger;
   color: string;
-  onButtonChange: (button: GestureTriggerButton) => void;
+  isCapturing: boolean;
+  onStartCapture: () => void;
   onColorChange: (color: string) => void;
 }
 
 function TriggerSettingRow({
   title,
-  button,
+  trigger,
   color,
-  onButtonChange,
+  isCapturing,
+  onStartCapture,
   onColorChange,
 }: TriggerSettingProps) {
   return (
     <div className="trigger-setting-row">
       <div className="trigger-setting-title">{title}</div>
-      <label className="trigger-setting-field">
-        <span>開始ボタン</span>
-        <select value={button} onChange={(e) => onButtonChange(e.target.value as GestureTriggerButton)}>
-          {triggerButtonOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="trigger-setting-field trigger-setting-field-wide">
+        <span>登録済みトリガー</span>
+        <div className="trigger-capture-row">
+          <code className="trigger-display">{formatTrigger(trigger)}</code>
+          <button type="button" className={isCapturing ? "capture-button active" : "capture-button"} onClick={onStartCapture}>
+            {isCapturing ? "入力待機中..." : "登録"}
+          </button>
+        </div>
+        <p className="trigger-setting-hint">登録を押したあとにマウスボタンかキーボード入力を実際に押してください。Esc でキャンセルできます。</p>
+        {isLeftMouseTrigger(trigger) && <p className="trigger-warning">Mouse Left は通常の左クリック操作と競合する可能性があります。</p>}
+      </div>
       <label className="trigger-setting-field">
         <span>軌跡色</span>
         <div className="trigger-color-field">
-          <input type="color" value={color} onChange={(e) => onColorChange(e.target.value)} />
+          <input type="color" value={color} onChange={(event) => onColorChange(event.target.value)} />
           <code>{color.toUpperCase()}</code>
         </div>
       </label>
@@ -62,8 +220,10 @@ export function SettingsTab() {
   const [triggerAColor, setTriggerAColor] = useState(config.triggerAColor);
   const [triggerBColor, setTriggerBColor] = useState(config.triggerBColor);
   const [triggerCColor, setTriggerCColor] = useState(config.triggerCColor);
+  const [captureSlot, setCaptureSlot] = useState<TriggerSlot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const skipSyncRef = useRef(false);
+  const captureReadyAtRef = useRef(0);
 
   useEffect(() => {
     if (skipSyncRef.current) {
@@ -83,7 +243,7 @@ export function SettingsTab() {
   const sanitizeIgnoreExe = (value: string) =>
     value
       .split(/\r?\n/)
-      .map((s) => s.trim())
+      .map((entry) => entry.trim())
       .filter(Boolean);
 
   const hasConfigChanged = (next: Config, prev: Config) => JSON.stringify(next) !== JSON.stringify(prev);
@@ -123,6 +283,86 @@ export function SettingsTab() {
     setConfig(nextConfig);
     setGestures(nextGestures);
   }, [setConfig, setGestures]);
+
+  const applyCapturedTrigger = useCallback(
+    (slot: TriggerSlot, trigger: GestureTrigger) => {
+      setCaptureSlot(null);
+      switch (slot) {
+        case "A":
+          setTriggerA(trigger);
+          void persistConfig({ triggerA: trigger });
+          break;
+        case "B":
+          setTriggerB(trigger);
+          void persistConfig({ triggerB: trigger });
+          break;
+        case "C":
+          setTriggerC(trigger);
+          void persistConfig({ triggerC: trigger });
+          break;
+      }
+    },
+    [persistConfig]
+  );
+
+  useEffect(() => {
+    if (!captureSlot) {
+      return;
+    }
+
+    captureReadyAtRef.current = Date.now() + CAPTURE_ARM_DELAY_MS;
+
+    const handleMouseCapture = (event: MouseEvent) => {
+      if (Date.now() < captureReadyAtRef.current) {
+        return;
+      }
+
+      const button = mouseButtonMap[event.button];
+      if (!button) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      applyCapturedTrigger(captureSlot, serializeMouseTrigger(button));
+    };
+
+    const handleKeyboardCapture = (event: KeyboardEvent) => {
+      if (event.repeat) {
+        event.preventDefault();
+        return;
+      }
+
+      if (event.key === "Escape" && !event.ctrlKey && !event.altKey && !event.shiftKey) {
+        event.preventDefault();
+        setCaptureSlot(null);
+        return;
+      }
+
+      const trigger = buildKeyboardTrigger(event);
+      if (!trigger) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      applyCapturedTrigger(captureSlot, trigger);
+    };
+
+    const suppressContextMenu = (event: Event) => {
+      event.preventDefault();
+    };
+
+    window.addEventListener("mousedown", handleMouseCapture, true);
+    window.addEventListener("keydown", handleKeyboardCapture, true);
+    window.addEventListener("contextmenu", suppressContextMenu, true);
+
+    return () => {
+      window.removeEventListener("mousedown", handleMouseCapture, true);
+      window.removeEventListener("keydown", handleKeyboardCapture, true);
+      window.removeEventListener("contextmenu", suppressContextMenu, true);
+    };
+  }, [applyCapturedTrigger, captureSlot]);
 
   const handleExport = useCallback(async () => {
     setError(null);
@@ -197,8 +437,8 @@ export function SettingsTab() {
             <input
               type="checkbox"
               checked={trajectory}
-              onChange={(e) => {
-                const checked = e.target.checked;
+              onChange={(event) => {
+                const checked = event.target.checked;
                 setTrajectory(checked);
                 void persistConfig({ trajectory: checked });
               }}
@@ -208,19 +448,20 @@ export function SettingsTab() {
         </div>
 
         <div className="settings-section">
-          <h3 className="section-title">トリガーボタン設定</h3>
+          <h3 className="section-title">トリガー入力設定</h3>
           <p className="section-desc">
-            Trigger A / B / C ごとに開始ボタンと軌跡色を設定します。
+            Trigger A / B / C ごとに登録ボタンを押し、使いたいマウスボタンまたはキーボード入力をそのまま押して登録します。
+          </p>
+          <p className="section-desc section-desc-warning">
+            キーボードトリガー入力の抑止は今回未対応です。登録したキー入力は他アプリにもそのまま届きます。
           </p>
 
           <TriggerSettingRow
             title="Trigger A"
-            button={triggerA}
+            trigger={triggerA}
             color={triggerAColor}
-            onButtonChange={(value) => {
-              setTriggerA(value);
-              void persistConfig({ triggerA: value });
-            }}
+            isCapturing={captureSlot === "A"}
+            onStartCapture={() => setCaptureSlot("A")}
             onColorChange={(value) => {
               setTriggerAColor(value);
               void persistConfig({ triggerAColor: value });
@@ -229,12 +470,10 @@ export function SettingsTab() {
 
           <TriggerSettingRow
             title="Trigger B"
-            button={triggerB}
+            trigger={triggerB}
             color={triggerBColor}
-            onButtonChange={(value) => {
-              setTriggerB(value);
-              void persistConfig({ triggerB: value });
-            }}
+            isCapturing={captureSlot === "B"}
+            onStartCapture={() => setCaptureSlot("B")}
             onColorChange={(value) => {
               setTriggerBColor(value);
               void persistConfig({ triggerBColor: value });
@@ -243,12 +482,10 @@ export function SettingsTab() {
 
           <TriggerSettingRow
             title="Trigger C"
-            button={triggerC}
+            trigger={triggerC}
             color={triggerCColor}
-            onButtonChange={(value) => {
-              setTriggerC(value);
-              void persistConfig({ triggerC: value });
-            }}
+            isCapturing={captureSlot === "C"}
+            onStartCapture={() => setCaptureSlot("C")}
             onColorChange={(value) => {
               setTriggerCColor(value);
               void persistConfig({ triggerCColor: value });
@@ -263,8 +500,8 @@ export function SettingsTab() {
           </p>
           <textarea
             value={ignoreExe}
-            onChange={(e) => {
-              const value = e.target.value;
+            onChange={(event) => {
+              const value = event.target.value;
               setIgnoreExe(value);
               void persistConfig({ ignore_exe: sanitizeIgnoreExe(value) });
             }}

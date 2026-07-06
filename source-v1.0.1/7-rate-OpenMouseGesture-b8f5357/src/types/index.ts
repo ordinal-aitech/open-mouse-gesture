@@ -4,11 +4,13 @@ export interface GestureTemplate {
 }
 
 export type TriggerSlot = "A" | "B" | "C";
-export type GestureTriggerButton = "right" | "middle" | "x1" | "x2";
+export type MouseTriggerButton = "left" | "right" | "middle" | "x1" | "x2";
+export type TriggerModifier = "Ctrl" | "Alt" | "Shift";
+export type GestureTrigger = string;
 export type TriggerType = "gesture" | "wheel";
 export type WheelTrigger = 
   | "wheel_up" 
-  | "wheel_down" 
+  | "wheel_down"
   | "wheel_click"
   | "x1_button"
   | "x2_button"
@@ -39,9 +41,9 @@ export interface Action {
 export interface Config {
   trajectory: boolean;
   ignore_exe: string[];
-  triggerA: GestureTriggerButton;
-  triggerB: GestureTriggerButton;
-  triggerC: GestureTriggerButton;
+  triggerA: GestureTrigger;
+  triggerB: GestureTrigger;
+  triggerC: GestureTrigger;
   triggerAColor: string;
   triggerBColor: string;
   triggerCColor: string;

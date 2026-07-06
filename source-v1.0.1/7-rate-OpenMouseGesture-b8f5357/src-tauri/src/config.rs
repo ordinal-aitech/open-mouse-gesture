@@ -119,17 +119,220 @@ fn default_trigger_slot() -> String {
 }
 
 fn default_trigger_button_right() -> String {
-    "right".to_string()
+    "mouse:right".to_string()
 }
 
 fn default_trigger_button_middle() -> String {
-    "middle".to_string()
+    "mouse:middle".to_string()
 }
 
 fn default_trigger_button_x1() -> String {
-    "x1".to_string()
+    "mouse:x1".to_string()
 }
 
+fn normalize_mouse_trigger(value: &str) -> Option<&'static str> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "left" | "mouse:left" => Some("left"),
+        "right" | "mouse:right" => Some("right"),
+        "middle" | "mouse:middle" => Some("middle"),
+        "x1" | "mouse:x1" => Some("x1"),
+        "x2" | "mouse:x2" => Some("x2"),
+        _ => None,
+    }
+}
+
+fn normalize_trigger_modifier(value: &str) -> Option<&'static str> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "ctrl" | "control" => Some("Ctrl"),
+        "alt" => Some("Alt"),
+        "shift" => Some("Shift"),
+        _ => None,
+    }
+}
+
+fn normalize_trigger_modifiers(values: &[&str]) -> Option<Vec<String>> {
+    let normalized: Vec<&'static str> = values
+        .iter()
+        .filter_map(|value| normalize_trigger_modifier(value))
+        .collect();
+
+    if normalized.len() != values.len() {
+        return None;
+    }
+
+    ordered_modifier_values(normalized)
+}
+
+fn ordered_modifier_values(values: Vec<&'static str>) -> Option<Vec<String>> {
+    Some(
+        ["Ctrl", "Alt", "Shift"]
+            .into_iter()
+            .filter(|modifier| values.iter().any(|value| value == modifier))
+            .map(|modifier| modifier.to_string())
+            .collect(),
+    )
+}
+
+fn format_keyboard_trigger(modifiers: &[String], code: &str) -> String {
+    if modifiers.is_empty() {
+        format!("key:{}", code)
+    } else {
+        format!("key:{}+{}", modifiers.join("+"), code)
+    }
+}
+
+#[allow(dead_code)]
+pub fn display_key_for_code(code: &str) -> Option<String> {
+    if code.starts_with("Key") && code.len() == 4 {
+        return Some(code[3..4].to_string());
+    }
+
+    if code.starts_with("Digit") && code.len() == 6 {
+        return Some(code[5..6].to_string());
+    }
+
+    if let Some(suffix) = code.strip_prefix("F") {
+        if suffix.parse::<u8>().ok().filter(|value| *value >= 1 && *value <= 24).is_some() {
+            return Some(code.to_string());
+        }
+    }
+
+    if code.starts_with("Numpad") && code.len() == 7 {
+        let digit = &code[6..7];
+        if digit.chars().all(|c| c.is_ascii_digit()) {
+            return Some(format!("Num {}", digit));
+        }
+    }
+
+    match code {
+        "ArrowDown" => Some("Down".to_string()),
+        "ArrowLeft" => Some("Left".to_string()),
+        "ArrowRight" => Some("Right".to_string()),
+        "ArrowUp" => Some("Up".to_string()),
+        "Backspace" => Some("Backspace".to_string()),
+        "CapsLock" => Some("CapsLock".to_string()),
+        "Delete" => Some("Delete".to_string()),
+        "End" => Some("End".to_string()),
+        "Enter" => Some("Enter".to_string()),
+        "Equal" => Some("=".to_string()),
+        "Escape" => Some("Escape".to_string()),
+        "Home" => Some("Home".to_string()),
+        "Insert" => Some("Insert".to_string()),
+        "Minus" => Some("-".to_string()),
+        "NumpadAdd" => Some("Num +".to_string()),
+        "NumpadDecimal" => Some("Num .".to_string()),
+        "NumpadDivide" => Some("Num /".to_string()),
+        "NumpadEnter" => Some("Num Enter".to_string()),
+        "NumpadMultiply" => Some("Num *".to_string()),
+        "NumpadSubtract" => Some("Num -".to_string()),
+        "PageDown" => Some("PageDown".to_string()),
+        "PageUp" => Some("PageUp".to_string()),
+        "Pause" => Some("Pause".to_string()),
+        "Period" => Some(".".to_string()),
+        "PrintScreen" => Some("PrintScreen".to_string()),
+        "ScrollLock" => Some("ScrollLock".to_string()),
+        "Semicolon" => Some(";".to_string()),
+        "Slash" => Some("/".to_string()),
+        "Space" => Some("Space".to_string()),
+        "Tab" => Some("Tab".to_string()),
+        _ => None,
+    }
+}
+
+pub fn keyboard_code_to_vk(code: &str) -> Option<u16> {
+    if code.starts_with("Key") && code.len() == 4 {
+        let c = code.as_bytes()[3];
+        if c.is_ascii_uppercase() {
+            return Some(c as u16);
+        }
+    }
+
+    if code.starts_with("Digit") && code.len() == 6 {
+        let c = code.as_bytes()[5];
+        if c.is_ascii_digit() {
+            return Some(c as u16);
+        }
+    }
+
+    if let Some(suffix) = code.strip_prefix("F") {
+        if let Ok(value) = suffix.parse::<u16>() {
+            if (1..=24).contains(&value) {
+                return Some(0x70 + value - 1);
+            }
+        }
+    }
+
+    if code.starts_with("Numpad") && code.len() == 7 {
+        let c = code.as_bytes()[6];
+        if c.is_ascii_digit() {
+            return Some(0x60 + (c - b'0') as u16);
+        }
+    }
+
+    match code {
+        "ArrowLeft" => Some(0x25),
+        "ArrowUp" => Some(0x26),
+        "ArrowRight" => Some(0x27),
+        "ArrowDown" => Some(0x28),
+        "Backspace" => Some(0x08),
+        "Tab" => Some(0x09),
+        "Enter" | "NumpadEnter" => Some(0x0D),
+        "Pause" => Some(0x13),
+        "CapsLock" => Some(0x14),
+        "Escape" => Some(0x1B),
+        "Space" => Some(0x20),
+        "PageUp" => Some(0x21),
+        "PageDown" => Some(0x22),
+        "End" => Some(0x23),
+        "Home" => Some(0x24),
+        "Insert" => Some(0x2D),
+        "Delete" => Some(0x2E),
+        "PrintScreen" => Some(0x2C),
+        "ScrollLock" => Some(0x91),
+        "Minus" => Some(0xBD),
+        "Equal" => Some(0xBB),
+        "Semicolon" => Some(0xBA),
+        "Slash" => Some(0xBF),
+        "Period" => Some(0xBE),
+        "NumpadMultiply" => Some(0x6A),
+        "NumpadAdd" => Some(0x6B),
+        "NumpadSubtract" => Some(0x6D),
+        "NumpadDecimal" => Some(0x6E),
+        "NumpadDivide" => Some(0x6F),
+        _ => None,
+    }
+}
+
+pub fn parse_keyboard_trigger(value: &str) -> Option<(Vec<String>, String)> {
+    let payload = value.trim().strip_prefix("key:")?;
+    let parts: Vec<&str> = payload.split('+').map(|part| part.trim()).filter(|part| !part.is_empty()).collect();
+    let (code, modifiers) = parts.split_last()?;
+    let normalized_modifiers = normalize_trigger_modifiers(modifiers)?;
+    if keyboard_code_to_vk(code).is_none() {
+        return None;
+    }
+    Some((normalized_modifiers, (*code).to_string()))
+}
+
+pub fn normalize_trigger_binding(value: &str, default_value: &str) -> String {
+    if let Some(button) = normalize_mouse_trigger(value) {
+        return format!("mouse:{}", button);
+    }
+
+    if let Some((modifiers, code)) = parse_keyboard_trigger(value) {
+        return format_keyboard_trigger(&modifiers, &code);
+    }
+
+    if let Some(button) = normalize_mouse_trigger(default_value) {
+        return format!("mouse:{}", button);
+    }
+
+    default_value.to_string()
+}
+
+fn is_valid_trigger_binding(value: &str) -> bool {
+    normalize_mouse_trigger(value).is_some() || parse_keyboard_trigger(value).is_some()
+}
 fn default_trigger_a_color() -> String {
     "#FF4D4F".to_string()
 }
@@ -148,10 +351,6 @@ fn default_group_id() -> String {
 
 fn default_group_name() -> String {
     DEFAULT_GROUP_NAME.to_string()
-}
-
-fn is_valid_trigger_button(value: &str) -> bool {
-    matches!(value, "right" | "middle" | "x1" | "x2")
 }
 
 fn is_valid_trigger_slot(value: &str) -> bool {
@@ -349,15 +548,9 @@ impl Default for Config {
 
 impl Config {
     pub fn normalized(mut self) -> Self {
-        if !is_valid_trigger_button(&self.triggerA) {
-            self.triggerA = default_trigger_button_right();
-        }
-        if !is_valid_trigger_button(&self.triggerB) {
-            self.triggerB = default_trigger_button_middle();
-        }
-        if !is_valid_trigger_button(&self.triggerC) {
-            self.triggerC = default_trigger_button_x1();
-        }
+        self.triggerA = normalize_trigger_binding(&self.triggerA, &default_trigger_button_right());
+        self.triggerB = normalize_trigger_binding(&self.triggerB, &default_trigger_button_middle());
+        self.triggerC = normalize_trigger_binding(&self.triggerC, &default_trigger_button_x1());
 
         if !is_valid_hex_color(&self.triggerAColor) {
             self.triggerAColor = default_trigger_a_color();
@@ -380,19 +573,19 @@ impl Config {
     }
 
     fn validate(&self) -> Result<(), ValidationError> {
-        if !is_valid_trigger_button(&self.triggerA) {
+        if !is_valid_trigger_binding(&self.triggerA) {
             return Err(ValidationError::InvalidValue(format!(
                 "invalid triggerA: {}",
                 self.triggerA
             )));
         }
-        if !is_valid_trigger_button(&self.triggerB) {
+        if !is_valid_trigger_binding(&self.triggerB) {
             return Err(ValidationError::InvalidValue(format!(
                 "invalid triggerB: {}",
                 self.triggerB
             )));
         }
-        if !is_valid_trigger_button(&self.triggerC) {
+        if !is_valid_trigger_binding(&self.triggerC) {
             return Err(ValidationError::InvalidValue(format!(
                 "invalid triggerC: {}",
                 self.triggerC

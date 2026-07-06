@@ -1,9 +1,9 @@
 {
   "trajectory": true,
   "ignore_exe": [],
-  "triggerA": "right",
-  "triggerB": "middle",
-  "triggerC": "x1",
+  "triggerA": "mouse:right",
+  "triggerB": "mouse:middle",
+  "triggerC": "mouse:x1",
   "triggerAColor": "#FF4D4F",
   "triggerBColor": "#4C8DFF",
   "triggerCColor": "#22A06B",
@@ -35,7 +35,9 @@
       "wheel_trigger": null,
       "action_type": "keystroke",
       "keystroke": "Left",
-      "modifiers": ["Alt"],
+      "modifiers": [
+        "Alt"
+      ],
       "command": null,
       "url": null,
       "operation": null,
@@ -50,7 +52,9 @@
       "wheel_trigger": null,
       "action_type": "keystroke",
       "keystroke": "Right",
-      "modifiers": ["Alt"],
+      "modifiers": [
+        "Alt"
+      ],
       "command": null,
       "url": null,
       "operation": null,
@@ -65,7 +69,9 @@
       "wheel_trigger": null,
       "action_type": "keystroke",
       "keystroke": "C",
-      "modifiers": ["Ctrl"],
+      "modifiers": [
+        "Ctrl"
+      ],
       "command": null,
       "url": null,
       "operation": null,
@@ -80,7 +86,9 @@
       "wheel_trigger": null,
       "action_type": "keystroke",
       "keystroke": "V",
-      "modifiers": ["Ctrl"],
+      "modifiers": [
+        "Ctrl"
+      ],
       "command": null,
       "url": null,
       "operation": null,
@@ -94,7 +102,9 @@
       "wheel_trigger": "wheel_down",
       "action_type": "keystroke",
       "keystroke": "Tab",
-      "modifiers": ["Ctrl"],
+      "modifiers": [
+        "Ctrl"
+      ],
       "command": null,
       "url": null,
       "operation": null,

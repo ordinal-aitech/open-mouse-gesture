@@ -256,3 +256,37 @@
   - 次の優先順
   - ビルド手順
   を 1 本で把握できるよう整理
+
+## 2026-07-07
+
+### Trigger A/B/C を統一入力トリガーへ拡張
+
+- Trigger A / B / C の設定UIを固定ドロップダウンから登録式キャプチャUIへ変更
+- 登録ボタン押下後に、実際のマウスボタンまたはキーボード入力を押して trigger を保存する方式へ変更
+- 保存形式を統一文字列表現へ更新
+  - マウス: `mouse:right` / `mouse:middle` / `mouse:x1` / `mouse:x2` / `mouse:left`
+  - キーボード: `key:Shift+F1` / `key:Ctrl+Alt+KeyK` のように modifier + code を保存
+- 旧設定の `right` / `middle` / `x1` / `x2` も読み込み時に互換変換し、正規化後は新形式で保存する migration を追加
+- Rust 側の低レベルフックをマウス + キーボード併用に拡張し、キーボードトリガー押下中でも既存の gesture 認識経路を使うよう変更
+- Trigger A で Mouse Right を使う既存の小移動右クリック fallback は維持
+- Mouse Left を登録した場合の警告表示を Settings に追加
+- キーボードトリガーの入力抑止は今回は未実装
+  - 登録したキー入力は他アプリにも届く制約を UI に明記
+
+### ビルド確認
+
+- `npm run build` 成功
+- `npm run tauri build` 成功
+- 生成物確認:
+  - `source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/GestureHotkeyApp.exe`
+  - `source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/bundle/nsis/GestureHotkeyApp_0.1.0_x64-setup.exe`
+
+### 未確認
+
+- 実GUI上での capture 動作確認
+  - Mouse Right
+  - Mouse Middle
+  - Mouse Left warning
+  - Shift+F1 などのキーボードトリガー
+- 実機マウスの X1 / X2 がこの build で期待通り検出されるか
+- キーボードトリガー使用時に対象アプリ側で副作用が許容範囲かどうか

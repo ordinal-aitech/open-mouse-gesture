@@ -58,9 +58,9 @@ export const useStore = create<AppState>((set, get) => ({
   config: {
     trajectory: true,
     ignore_exe: [],
-    triggerA: "right",
-    triggerB: "middle",
-    triggerC: "x1",
+    triggerA: "mouse:right",
+    triggerB: "mouse:middle",
+    triggerC: "mouse:x1",
     triggerAColor: "#FF4D4F",
     triggerBColor: "#4C8DFF",
     triggerCColor: "#22A06B",

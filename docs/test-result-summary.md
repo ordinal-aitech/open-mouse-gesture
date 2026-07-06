@@ -101,3 +101,23 @@
 ## 補足
 - 今回は「グループ名を action ごとに入力する方式」をやめる修正が主目的
 - action label overlay は前回方針どおり無効化のまま維持
+
+## 2026-07-07 Unified Trigger Capture
+
+### 実施
+- `npm run build`: 成功
+- `npm run tauri build` 相当（`artifacts/run-tauri-build.cmd` を source dir から実行）: 成功
+- release bundle 生成確認:
+  - `source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/GestureHotkeyApp.exe`
+  - `source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/src-tauri/target/release/bundle/nsis/GestureHotkeyApp_0.1.0_x64-setup.exe`
+
+### 未実施
+- 実GUIでの Trigger A / B / C capture 操作確認
+- Mouse Left 登録 warning の画面確認
+- Shift+F1 などのキーボードトリガーでの実運用確認
+- 既存 config を読み込ませた実ランタイム migration 確認
+- X1 / X2 の実機確認
+
+### 制約
+- キーボードトリガー入力の suppress / consume は未実装
+- 登録したキーボード入力は他アプリにも届く
