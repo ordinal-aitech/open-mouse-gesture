@@ -1,19 +1,8 @@
 {
-  "task_id": "agent-20260707-open-mouse-gesture-unified-trigger-capture-001",
+  "task_id": "agent-20260707-open-mouse-gesture-rebuild-unified-trigger-001",
   "status": "pending",
-  "summary": "Unified trigger capture implementation request is ready. Execution has not started yet.",
-  "files_changed": [],
-  "validation_results": [],
-  "unverified_items": [
-    "AI Orchestrator runner has not executed this task yet.",
-    "Unified mouse/keyboard trigger capture is not implemented yet.",
-    "Build validation is not run yet."
-  ],
-  "blockers": [],
-  "project": {
-    "project_id": "open-mouse-gesture",
-    "repository": "ordinal-aitech/open-mouse-gesture",
-    "local_path": "C:\\GitHub\\open-mouse-gesture",
-    "runtime_path": "C:\\GitHub\\open-mouse-gesture\\runtime"
-  }
+  "summary": "Ready for rebuild execution.",
+  "commands_run": [],
+  "generated_artifacts": [],
+  "blockers": []
 }
