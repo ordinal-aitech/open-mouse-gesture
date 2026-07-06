@@ -1,47 +1,15 @@
 {
-  "task_id": "agent-20260705-open-mouse-gesture-build-installer-retry-001",
-  "state": "completed",
-  "progress": 100,
+  "task_id": "agent-20260707-open-mouse-gesture-resume-baseline-001",
+  "state": "ready",
+  "progress": 0,
+  "current_step": "Waiting for AI Orchestrator runner to execute repository normalization and baseline check task.",
   "blocker": null,
   "error": null,
-  "environment_versions": {
-    "recorded_at": "2026-07-05T04:24:08.665016+00:00",
-    "schema": {
-      "task_schema_version": "1.0",
-      "report_schema_version": "1.0",
-      "progress_schema_version": "1.0"
-    },
-    "components": {
-      "task_generator_version": "0.1.0",
-      "runner_version": "0.1.0",
-      "execution_agent_version": "0.1.0",
-      "executor_core_version": "0.1.0"
-    },
-    "python": {
-      "version": "3.12.10",
-      "implementation": "CPython"
-    },
-    "os": {
-      "system": "Windows",
-      "release": "11",
-      "machine": "AMD64"
-    },
-    "encoding": {
-      "pythonioencoding": null,
-      "pythonutf8": null
-    },
-    "task_generation": {
-      "generator": "chatgpt",
-      "source": "GitHub connector",
-      "generated_at": "2026-07-05T13:24:00+09:00",
-      "schema_source": "ordinal-aitech/ai-orchestrator/schemas/task.schema.json"
-    }
-  },
+  "updated_at": "2026-07-07T03:00:00+09:00",
   "project": {
     "project_id": "open-mouse-gesture",
     "repository": "ordinal-aitech/open-mouse-gesture",
     "local_path": "C:\\GitHub\\open-mouse-gesture",
     "runtime_path": "C:\\GitHub\\open-mouse-gesture\\runtime"
-  },
-  "git_sync_state": "executing"
+  }
 }
