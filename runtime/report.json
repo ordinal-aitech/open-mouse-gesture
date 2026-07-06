@@ -1,37 +1,22 @@
 {
-  "task_id": "agent-20260705-open-mouse-gesture-build-installer-retry-001",
-  "status": "failed",
-  "summary": "git_sync pull_before_run failed: git pull --ff-only failed: From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.",
-  "execution_agent_requested": "codex",
-  "execution_mode": "local_command",
+  "task_id": "agent-20260707-open-mouse-gesture-resume-baseline-001",
+  "status": "pending",
+  "summary": "New task is ready. Execution has not started yet.",
+  "primary_handoff_document": "docs/codex-handoff-spec.md",
+  "git_sync": {
+    "attempted": false,
+    "success": null
+  },
+  "commands_run": [],
+  "files_changed": [],
+  "validation_results": [],
+  "unverified_items": [
+    "Repository inventory is not complete yet.",
+    "Build baseline is not verified yet."
+  ],
+  "blockers": [],
   "project": {
     "project_id": "open-mouse-gesture",
-    "repository": "ordinal-aitech/open-mouse-gesture",
-    "local_path": "C:\\GitHub\\open-mouse-gesture",
-    "runtime_path": "C:\\GitHub\\open-mouse-gesture\\runtime"
-  },
-  "git_sync": {
-    "enabled": true,
-    "pull_before_run": {
-      "attempted": true,
-      "success": false,
-      "stdout": "",
-      "stderr": "From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.\n",
-      "diverged": false
-    }
-  },
-  "result": {},
-  "execution_time": "0.000s",
-  "error": {
-    "code": "GIT_PULL_FAILED",
-    "message": "git pull --ff-only failed: From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.",
-    "retryable": false,
-    "detail": {
-      "attempted": true,
-      "success": false,
-      "stdout": "",
-      "stderr": "From https://github.com/ordinal-aitech/open-mouse-gesture\n * branch            main       -> FETCH_HEAD\nfatal: Cannot fast-forward to multiple branches.\n",
-      "diverged": false
-    }
+    "repository": "ordinal-aitech/open-mouse-gesture"
   }
 }
