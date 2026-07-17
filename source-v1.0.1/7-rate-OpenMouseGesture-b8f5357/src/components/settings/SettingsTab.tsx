@@ -172,6 +172,7 @@ interface TriggerSettingProps {
   trigger: GestureTrigger;
   color: string;
   isCapturing: boolean;
+  duplicateOf: string | null;
   onStartCapture: () => void;
   onColorChange: (color: string) => void;
 }
@@ -181,6 +182,7 @@ function TriggerSettingRow({
   trigger,
   color,
   isCapturing,
+  duplicateOf,
   onStartCapture,
   onColorChange,
 }: TriggerSettingProps) {
@@ -197,6 +199,7 @@ function TriggerSettingRow({
         </div>
         <p className="trigger-setting-hint">登録を押したあとにマウスボタンかキーボード入力を実際に押してください。Esc でキャンセルできます。</p>
         {isLeftMouseTrigger(trigger) && <p className="trigger-warning">Mouse Left は通常の左クリック操作と競合する可能性があります。</p>}
+        {duplicateOf && <p className="trigger-warning">Trigger {duplicateOf} と同じ入力です。先に判定される Trigger が優先され、こちらは反応しません。</p>}
       </div>
       <label className="trigger-setting-field">
         <span>軌跡色</span>
@@ -277,6 +280,9 @@ export function SettingsTab() {
     },
     [config, pushHistory, setConfig]
   );
+
+  const duplicateOfB = triggerB === triggerA ? "A" : null;
+  const duplicateOfC = triggerC === triggerA ? "A" : triggerC === triggerB ? "B" : null;
 
   const reloadFromDisk = useCallback(async () => {
     const [nextConfig, nextGestures] = await Promise.all([api.getConfig(), api.getGestures()]);
@@ -461,6 +467,7 @@ export function SettingsTab() {
             trigger={triggerA}
             color={triggerAColor}
             isCapturing={captureSlot === "A"}
+            duplicateOf={null}
             onStartCapture={() => setCaptureSlot("A")}
             onColorChange={(value) => {
               setTriggerAColor(value);
@@ -473,6 +480,7 @@ export function SettingsTab() {
             trigger={triggerB}
             color={triggerBColor}
             isCapturing={captureSlot === "B"}
+            duplicateOf={duplicateOfB}
             onStartCapture={() => setCaptureSlot("B")}
             onColorChange={(value) => {
               setTriggerBColor(value);
@@ -485,6 +493,7 @@ export function SettingsTab() {
             trigger={triggerC}
             color={triggerCColor}
             isCapturing={captureSlot === "C"}
+            duplicateOf={duplicateOfC}
             onStartCapture={() => setCaptureSlot("C")}
             onColorChange={(value) => {
               setTriggerCColor(value);

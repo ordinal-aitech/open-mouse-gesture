@@ -243,6 +243,13 @@ pub fn clear_action_label_overlay() {
     action_label_overlay::clear_action_label();
 }
 
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 fn is_matching_action_key(action: &Action, action_key: &str) -> bool {
     action_key_for_action(action) == action_key
 }
@@ -519,12 +526,7 @@ fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .tooltip("GestureHotkeyApp")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => app.exit(0),
-            "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                }
-            }
+            "show" => show_main_window(app),
             _ => {}
         })
         .on_tray_icon_event(|_tray, event| {
@@ -582,28 +584,68 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            eprintln!("[startup] GestureHotkeyApp setup begin");
             let _ = APP_HANDLE.set(app.handle().clone());
-            setup_tray(app.handle())?;
+            let tray_ready = match setup_tray(app.handle()) {
+                Ok(_) => {
+                    eprintln!("[startup] tray ready");
+                    true
+                }
+                Err(err) => {
+                    eprintln!("[startup] tray setup failed: {}", err);
+                    false
+                }
+            };
 
             if let Some(window) = app.get_webview_window("main") {
-                let _ = set_titlebar_color(&window);
+                if let Err(err) = set_titlebar_color(&window) {
+                    eprintln!("[startup] titlebar color setup failed: {}", err);
+                }
             }
 
             if let Ok(manager) = ConfigManager::new() {
                 match manager.load_config() {
-                    Ok(config) => set_trajectory_enabled_internal(config.trajectory),
+                    Ok(config) => {
+                        set_trajectory_enabled_internal(config.trajectory);
+                        eprintln!(
+                            "[startup] config loaded: triggerA={}, triggerB={}, triggerC={}, trajectory={}",
+                            config.triggerA, config.triggerB, config.triggerC, config.trajectory
+                        );
+                    }
                     Err(e) => {
-                        eprintln!("[ERROR] config.json validation failed: {}", e);
+                        eprintln!("[startup] config.json validation failed: {}", e);
                         set_trajectory_enabled_internal(true);
                     }
                 }
+            } else {
+                eprintln!("[startup] failed to initialize config manager");
             }
 
-            let _ = trajectory_renderer::init_renderer();
-            if ACTION_LABEL_OVERLAY_ENABLED {
-                let _ = action_label_overlay::init_overlay();
+            if let Err(err) = trajectory_renderer::init_renderer() {
+                eprintln!("[startup] trajectory renderer init failed: {}", err);
+            } else {
+                eprintln!("[startup] trajectory renderer ready");
             }
-            let _ = mouse_hook::install_hook();
+            if ACTION_LABEL_OVERLAY_ENABLED {
+                if let Err(err) = action_label_overlay::init_overlay() {
+                    eprintln!("[startup] action label overlay init failed: {}", err);
+                } else {
+                    eprintln!("[startup] action label overlay ready");
+                }
+            }
+
+            if let Err(err) = mouse_hook::install_hook() {
+                eprintln!("[startup] mouse hook install failed: {}", err);
+            } else {
+                eprintln!("[startup] mouse hook installed");
+            }
+
+            if !tray_ready {
+                eprintln!("[startup] tray unavailable, showing main window fallback");
+                show_main_window(app.handle());
+            }
+
+            eprintln!("[startup] GestureHotkeyApp setup complete");
             Ok(())
         })
         .on_window_event(|window, event| {

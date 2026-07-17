@@ -925,3 +925,83 @@ fn migrate_legacy_release_files(target_dir: &PathBuf) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn legacy_mouse_triggers_migrate_to_unified_format() {
+        assert_eq!(normalize_trigger_binding("right", "mouse:right"), "mouse:right");
+        assert_eq!(normalize_trigger_binding("middle", "mouse:middle"), "mouse:middle");
+        assert_eq!(normalize_trigger_binding("x1", "mouse:x1"), "mouse:x1");
+        assert_eq!(normalize_trigger_binding("x2", "mouse:x2"), "mouse:x2");
+        assert_eq!(normalize_trigger_binding("left", "mouse:right"), "mouse:left");
+    }
+
+    #[test]
+    fn unified_mouse_triggers_round_trip() {
+        for value in ["mouse:right", "mouse:middle", "mouse:x1", "mouse:x2", "mouse:left"] {
+            assert_eq!(normalize_trigger_binding(value, "mouse:right"), value);
+        }
+    }
+
+    #[test]
+    fn keyboard_triggers_parse_with_ordered_modifiers() {
+        let (modifiers, code) = parse_keyboard_trigger("key:Shift+F1").expect("should parse");
+        assert_eq!(modifiers, vec!["Shift".to_string()]);
+        assert_eq!(code, "F1");
+
+        let (modifiers, code) = parse_keyboard_trigger("key:Alt+Ctrl+KeyK").expect("should parse");
+        assert_eq!(modifiers, vec!["Ctrl".to_string(), "Alt".to_string()]);
+        assert_eq!(code, "KeyK");
+    }
+
+    #[test]
+    fn keyboard_trigger_formatting_is_stable_regardless_of_input_order() {
+        let normalized = normalize_trigger_binding("key:Shift+Alt+KeyK", "mouse:right");
+        assert_eq!(normalized, "key:Alt+Shift+KeyK");
+    }
+
+    #[test]
+    fn modifier_only_keyboard_trigger_is_rejected() {
+        assert!(parse_keyboard_trigger("key:Shift").is_none());
+        assert!(parse_keyboard_trigger("key:Ctrl+Alt").is_none());
+    }
+
+    #[test]
+    fn unknown_key_code_is_rejected() {
+        assert!(parse_keyboard_trigger("key:NotARealKey").is_none());
+    }
+
+    #[test]
+    fn invalid_trigger_binding_falls_back_to_default() {
+        let fallback = normalize_trigger_binding("garbage", "mouse:right");
+        assert_eq!(fallback, "mouse:right");
+    }
+
+    #[test]
+    fn config_normalization_migrates_all_legacy_slots_and_is_idempotent() {
+        let mut config = Config::default();
+        config.triggerA = "right".to_string();
+        config.triggerB = "middle".to_string();
+        config.triggerC = "x1".to_string();
+
+        let normalized = config.normalized();
+        assert_eq!(normalized.triggerA, "mouse:right");
+        assert_eq!(normalized.triggerB, "mouse:middle");
+        assert_eq!(normalized.triggerC, "mouse:x1");
+        assert!(normalized.validate().is_ok());
+
+        let twice_normalized = normalized.clone().normalized();
+        assert_eq!(normalized, twice_normalized);
+    }
+
+    #[test]
+    fn keyboard_code_to_vk_covers_function_and_letter_keys() {
+        assert_eq!(keyboard_code_to_vk("F1"), Some(0x70));
+        assert_eq!(keyboard_code_to_vk("KeyK"), Some(b'K' as u16));
+        assert_eq!(keyboard_code_to_vk("Digit5"), Some(b'5' as u16));
+        assert_eq!(keyboard_code_to_vk("NotAKey"), None);
+    }
+}

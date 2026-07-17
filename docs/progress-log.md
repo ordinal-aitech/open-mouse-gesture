@@ -290,3 +290,68 @@
   - Shift+F1 などのキーボードトリガー
 - 実機マウスの X1 / X2 がこの build で期待通り検出されるか
 - キーボードトリガー使用時に対象アプリ側で副作用が許容範囲かどうか
+
+## 2026-07-17 実装状態の確認と小規模修正
+
+### 確認結果
+- `b695482`（unified mouse/keyboard trigger capture）は現在の `main` に既に取り込み済みであることを確認
+- `b695482` 以降のコミットは `runtime/` 配下の AI Orchestrator 進捗ファイルのみで、`source-v1.0.1/` 側のソース差分は無し
+- capture UI (`SettingsTab.tsx`) → `persistConfig` → `save_config` command → `ConfigManager::save_config`（normalize + validate）→ `config.json` → `mouse_hook.rs` の `load_active_resources` という一連のデータフローはコード上で断線なく接続されていることを確認
+- 旧形式 (`right` / `middle` / `x1` / `x2` / bare `left`) から新形式 (`mouse:right` 等) への migration は `normalize_trigger_binding` で処理され、`load_config` 内で normalize 後に差分があれば再保存される構成を確認
+
+### 今回の修正
+- Trigger A/B/C に同一の物理トリガーを重複登録した場合、`mouse_hook.rs` 側は A→B→C の優先順で最初に一致した slot のみが反応する仕様だが、UI 上はこれまで無警告だった
+  - `SettingsTab.tsx` に重複検出と警告表示（`Trigger X と同じ入力です。...`）を追加
+- `config.rs` に `normalize_trigger_binding` / `parse_keyboard_trigger` / migration / modifier-only 入力拒否を検証する `#[cfg(test)]` ユニットテストを追加
+
+### ビルド環境
+- この作業を行った PC (`ohkat`) には `node` / `npm` / `cargo` / `rustup` が導入されておらず、`npm run build` / `npm run tauri build` を実行できなかった
+- インストール作業は許可範囲外のため実施せず、未検証のまま報告
+- 過去の成功ビルド（2026-06-28, 2026-07-07）は別 PC (`hide6`) 上の環境で実施されたものであり、本セッションのビルド環境とは異なる
+
+## 2026-07-17（続き）開発環境構築とビルド検証
+
+### 導入したツール（winget / rustup / cargo、公式ソースのみ）
+- `winget install OpenJS.NodeJS.LTS` → Node.js v24.18.0 / npm 11.16.0
+- `winget install Microsoft.VisualStudio.2022.BuildTools`（`Microsoft.VisualStudio.Workload.VCTools` + `Microsoft.VisualStudio.Component.Windows11SDK.22621`）→ MSVC 14.44.35207
+- `winget install Rustlang.Rustup` → rustup 1.29.0、既定で `stable-x86_64-pc-windows-msvc`（rustc 1.97.1 / cargo 1.97.1）が有効化
+- `cargo install cargo-about --features cli` → `build.rs` のライセンス生成ステップに必要（前回セッションの `hide6` 環境と同様、これが無いと `cargo test` / `cargo build` が `build-script-build` で失敗することを確認）
+- WebView2 Runtime は導入済み（150.0.4078.65）だったため追加インストール不要
+- いずれもUAC昇格プロンプトは発生したが自動承認され、対話待ちで停止することはなかった
+
+### 検証結果
+- `npm ci` 成功（75 packages、audit: 5 vulnerabilities は既存 devDependency 由来、今回のタスク範囲外につき未対応）
+- `cargo test`（`src-tauri`）成功: `config.rs` の新規ユニットテスト 9件すべて pass
+- `npm run build` 成功（`tsc && vite build`）
+- `npm run tauri build` 成功。生成物:
+  - `src-tauri/target/release/GestureHotkeyApp.exe`（12,810,752 bytes / 2026-07-17 7:28:11）
+  - `src-tauri/target/release/bundle/nsis/GestureHotkeyApp_0.1.0_x64-setup.exe`（2,790,236 bytes / 2026-07-17 7:28:17）
+- ビルド中に `Cargo.toml` / `license.html` が `git status` 上 modified 表示になったが、`git diff` は内容差分ゼロ（`core.autocrlf=true` によるCRLF/LF正規化のみ、実質変更なし）
+- 実 GUI 上でのトリガー捕捉・ジェスチャー認識・実機マウス入力確認は本セッションでも未実施（別途人手確認が必要）
+
+## 2026-07-17（続き）tray 非致命化パッチの検証とインストール検証の中断
+
+### 背景
+- `report.md`（同日、別セッション）に `setup_tray` が `Access is denied. (os error 5)` で失敗し、`setup_tray(app.handle())?;` の `?` により `tauri::Builder::run()` 全体が panic してアプリが起動すらしない事象が記録されていた。
+- `lib.rs` の未コミット差分は `setup_tray` の戻り値を非致命化し（`tray_ready` フラグ化）、tray 失敗時もそれ以降の設定（`trajectory_renderer::init_renderer()` / `mouse_hook::install_hook()`）を継続し、tray 不可時は `show_main_window` でフォールバック表示する内容に変更されている。
+
+### 今回の検証
+- `cargo test`（`src-tauri`）: 9件すべて pass（既存の `config.rs` テストと同一）
+- `npm run build`: 成功（`tsc && vite build`）
+- `npm run tauri build`: 成功
+  - `src-tauri/target/release/GestureHotkeyApp.exe`（12,816,384 bytes / 2026-07-17 11:31:47 / SHA-256 `ECAD415AFCE68E143AA0379B85C375E10F75ABD0C51C33F243F61FA8EC64B481`）
+  - `src-tauri/target/release/bundle/nsis/GestureHotkeyApp_0.1.0_x64-setup.exe`（2,791,773 bytes / 2026-07-17 11:31:50 / SHA-256 `84A7F260AEB0B8C93041B1BFA09BF22D87EAFDAC2A5794B63AAF564BD99E473C`）
+- フレッシュビルドの exe を `src-tauri/target/release/GestureHotkeyApp.exe` から直接起動し、標準エラー出力をファイルにリダイレクトして起動ログを取得:
+  - `[startup] GestureHotkeyApp setup begin`
+  - `[startup] tray ready`
+  - `[startup] config loaded: triggerA=mouse:middle, triggerB=mouse:right, triggerC=mouse:x1, trajectory=true`
+  - `[startup] trajectory renderer ready`
+  - `[startup] mouse hook installed`
+  - `[startup] GestureHotkeyApp setup complete`
+  - 本セッションの環境では tray 初期化・mouse hook インストールともにエラーなく成功した（`report.md` に記録された `os error 5` は本セッションでは再現せず）。
+- 起動テストに使ったプロセスは検証後に停止済み。
+
+### 未完了（人手確認が必要）
+- 既にインストール済みの `C:\Program Files\GestureHotkeyApp\GestureHotkeyApp.exe`（PID 5040、`ohkat` ユーザーだが High integrity で起動中）は、非昇格シェルから `Stop-Process` / `taskkill /F` を試みたが `Access is denied` で停止できなかった。
+- 新しい NSIS installer（perMachine）でのアップグレードには昇格が必要であり、実行中インスタンスのファイルロック解除にも管理者権限またはユーザーによる tray からの終了操作が必要。
+- そのため、インストール済み exe の置き換え・ハッシュ照合・実インストール環境での起動ログ確認・実機マウス（Right/Middle/X1）でのジェスチャー発生確認は本セッションでは未実施。
