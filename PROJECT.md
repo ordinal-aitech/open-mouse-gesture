@@ -4,9 +4,9 @@
 
 OpenMouseGesture is a Windows mouse-gesture utility implemented with Tauri 2, React, TypeScript, and Rust.
 
-This file is the single canonical project document for the repository. It describes the current implementation and current operational rules. It is not a chronological task log.
+This file is the canonical reference for the repository's **current specification, constraints, verified behavior, and operating state**. It is not a chronological task log. `CHANGELOG.md` is the separate canonical record of change history.
 
-Historical work logs, superseded plans, temporary reports, and obsolete verification notes must not be kept as competing Markdown documents in this repository. Historical information belongs in the external knowledge-management system. When implementation changes, update this file and the code; do not create a new status Markdown file unless the user explicitly requests one.
+Historical work logs, superseded plans, temporary reports, and obsolete verification notes must not be kept as competing Markdown documents in this repository. Historical information belongs in the external knowledge-management system. When implementation changes, update the current facts here and record substantive history in `CHANGELOG.md`; do not create a new status Markdown file unless the user explicitly requests one.
 
 ## Current Status
 
@@ -138,11 +138,13 @@ Automated tests are necessary but do not override contradictory physical results
 
 ## Repository Rules
 
-- Treat `PROJECT.md` as the single canonical Markdown document for current project state and operating rules.
+- Treat `PROJECT.md` as the canonical current-state specification and operating reference.
+- Treat `CHANGELOG.md` as the canonical change history.
 - Treat `source-v1.0.1/7-rate-OpenMouseGesture-b8f5357/` as the active source of truth for implementation.
 - Do not create task logs, progress logs, completion reports, handoff notes, or dated status Markdown files inside the repository unless explicitly requested.
 - Store historical logs and superseded decisions in the external knowledge-management system, not in competing repository documents.
-- Update this file when a current product fact, limitation, build flow, or operational rule changes.
+- Update `PROJECT.md` when a current product fact, limitation, build flow, or operational rule changes.
+- Append substantive implementation changes and their verification status to `CHANGELOG.md` while the evidence is fresh.
 - Preserve unrelated workspace changes.
 - Do not rewrite history or force-push for routine maintenance.
 - Keep root-level distribution tooling synchronized with the actual Tauri bundle layout.
